@@ -69,9 +69,24 @@ var verticalCells = 20;
 var cells = [];
 var posCells = [];
 var pos = [0, 0];
-var global;
+var StickerState = (function () {
+    function StickerState(matrix, size, coords, color) {
+        this.matrix = matrix;
+        this.size = size;
+        this.coords = coords;
+        this.color = color;
+    }
+    return StickerState;
+}());
+var stickerState;
 var emptyColorString = "pink";
 var emptyColor = color(emptyColorString);
+var possibleColors = [
+    "blue",
+    "red",
+    "green",
+    "yellow",
+].map(function (str) { return color(str); });
 function setup() {
     createCanvas(cellPx * horizontalCells, cellPx * verticalCells);
     noStroke();
@@ -88,6 +103,7 @@ function setup() {
             rect(j * cellPx, i * cellPx, cellPx, cellPx);
         }
     }
+    initNewShape();
 }
 function draw() {
     drawGrid();
@@ -103,13 +119,19 @@ function rotate(matrix) {
         return matrix.map(function (row) { return row[colIndex]; }).reverse();
     });
 }
-function applySticker(sticker, size, cells, _a, color) {
-    var x = _a[0], y = _a[1];
-    if (color === void 0) { color = p5.Color; }
-    for (var i = 0; i < size; i++) {
+function applySticker() {
+    var size = stickerState.size;
+    var matrix = stickerState.matrix;
+    var _a = stickerState.coords, x = _a[0], y = _a[1];
+    var stickerColor = stickerState.color;
+    for (var i = 0; i < stickerState.size; i++) {
         for (var j = 0; j < size; j++) {
-            if (!!sticker[i][j]) {
-                if (cells[x + i][y + j] === emptyColor) {
+            if (!!matrix[i][j]) {
+                if (cells[x + i][y + j] === emptyColor && (0 <= x + i <= horizontalCells - 1) && ) {
+                    cells[x + i][y + j] = stickerColor;
+                }
+                else {
+                    return false;
                 }
             }
         }
@@ -119,17 +141,30 @@ function applySticker(sticker, size, cells, _a, color) {
 function initNewShape() {
     var initCoords = [0, 0];
     var _a = generatePolygon(), shape = _a[0], size = _a[1];
-    var delta = floor(random() * (horizontalCells - size));
+    var leftMost = 0;
+    for (var i = size; i > 0; i--) {
+        for (var j = 0; j < size; j++) {
+            if (shape[j][i] == 1) {
+                leftMost = i;
+                break;
+            }
+        }
+        break;
+    }
+    var delta = floor(random() * (horizontalCells - size + leftMost));
     initCoords = [0 + delta, 0];
-    shape = rotate(shape);
-    return [shape, initCoords];
+    stickerState = new StickerState(shape, size, initCoords, possibleColors[floor(random(0, possibleColors.length))]);
 }
 function keyPressed() {
     if (keyCode === UP_ARROW) {
-        rotate();
+        stickerState.matrix = rotate(stickerState.matrix);
     }
     else if (keyCode === DOWN_ARROW) {
-        value = 0;
+        stickerState.coords = [
+            stickerState.coords[0],
+            stickerState.coords[1] + 1,
+        ];
     }
+    applySticker();
 }
 //# sourceMappingURL=build.js.map

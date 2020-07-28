@@ -11,10 +11,26 @@ let cells: ColorMatrix = [];
 let posCells: Coords[][] = [];
 let pos: Coords = [0, 0];
 
-let global;
+class StickerState {
+  constructor(
+    public matrix: Booly[][],
+    public size: number,
+    public coords: Coords,
+    public color: p5.Color
+  ) {}
+}
+
+let stickerState: StickerState;
 
 const emptyColorString = "pink";
 const emptyColor = color(emptyColorString);
+
+const possibleColors = [
+  "blue",
+  "red",
+  "green",
+  "yellow",
+].map((str) => color(str));
 
 function setup() {
   createCanvas(
@@ -29,12 +45,13 @@ function setup() {
     cells[i] = [];
     posCells[i] = [];
     for (var j: number = 0; j < 10; j++) {
-     console.log(i, j);
+      console.log(i, j);
       cells[i][j] = color(emptyColorString);
       posCells[i][j] = [j * cellPx, i * cellPx];
       rect(j * cellPx, i * cellPx, cellPx, cellPx);
     }
   }
+  initNewShape();
 }
 
 function draw() {
@@ -54,18 +71,16 @@ function rotate(matrix: any[][]) {
   );
 }
 
-function applySticker(
-  sticker: Booly[][],
-  size: number,
-  cells: ColorMatrix,
-  [x, y]: Coords,
-  stickerColor = p5.Color
-): Boolean {
-  for (let i = 0; i < size; i++) {
+function applySticker(): Boolean {
+  let size = stickerState.size;
+  let matrix = stickerState.matrix;
+  let [x, y] = stickerState.coords;
+  let stickerColor = stickerState.color;
+  for (let i = 0; i < stickerState.size; i++) {
     for (let j = 0; j < size; j++) {
-      if (!!sticker[i][j]) {
-        if (cells[x + i][y + j] === emptyColor) {
-          cells[x + i][y + j] = new stickerColor();
+      if (!!matrix[i][j]) {
+        if (cells[x + i][y + j] === emptyColor && (0 <= x + i <= horizontalCells - 1) &&) {
+          cells[x + i][y + j] = stickerColor;
         } else {
           return false;
         }
@@ -75,19 +90,47 @@ function applySticker(
   return true;
 }
 
-function initNewShape(): [Booly[][], Coords] {
+function initNewShape(){
   let initCoords: Coords = [0, 0];
   let [shape, size] = generatePolygon();
-  let delta = floor(random() * (horizontalCells - size));
+
+  let leftMost = 0;
+  //Check leftShape
+  for (let i = size; i > 0; i--) {
+    //Column--------------[?][i]
+    //Check what is the leftmost filled cell of the shape
+    //Checks column whise
+    for (let j = 0; j < size; j++) {
+      //Row-------------[j][i]
+      if (shape[j][i] == 1) {
+        leftMost = i;
+        break;
+      }
+    }
+    break;
+  }
+
+  let delta = floor(
+    random() * (horizontalCells - size + leftMost)
+  );
   initCoords = [0 + delta, 0]; // x, y
-  shape = rotate(shape);
-  return [shape, initCoords];
+
+  stickerState = new StickerState(
+    shape,
+    size,
+    initCoords,
+    possibleColors[floor(random(0, possibleColors.length))]
+  );
 }
 
 function keyPressed() {
   if (keyCode === UP_ARROW) {
-    rotate();
+    stickerState.matrix = rotate(stickerState.matrix);
   } else if (keyCode === DOWN_ARROW) {
-    value = 0;
+    stickerState.coords = [
+      stickerState.coords[0],
+      stickerState.coords[1] + 1,
+    ];
   }
+  applySticker();
 }
