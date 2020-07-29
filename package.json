@@ -14,5 +14,9 @@
     "browser-sync": "^2.26.12",
     "npm-run-all": "^4.1.5",
     "typescript": "^3.8.3"
+  },
+  "dependencies": {
+    "@types/lodash": "^4.14.158",
+    "lodash": "^4.17.19"
   }
 }
