@@ -70,49 +70,54 @@ var cells = [];
 var posCells = [];
 var pos = [0, 0];
 var StickerState = (function () {
-    function StickerState(matrix, size, coords, color) {
+    function StickerState(matrix, size, coords, colorString) {
         this.matrix = matrix;
         this.size = size;
         this.coords = coords;
-        this.color = color;
+        this.colorString = colorString;
     }
     return StickerState;
 }());
 var stickerState;
-var emptyColorString = "pink";
-var emptyColor = color(emptyColorString);
-var possibleColors = [
-    "blue",
-    "red",
-    "green",
-    "yellow",
-].map(function (str) { return color(str); });
+var emptyColorString = "white";
+var emptyColor;
 function setup() {
     createCanvas(cellPx * horizontalCells, cellPx * verticalCells);
-    noStroke();
+    emptyColor = color(emptyColorString);
+    var possibleColors = [
+        "blue",
+        "red",
+        "green",
+        "yellow",
+        "purple",
+        "orange",
+    ];
+    initNewShape(possibleColors);
     strokeWeight(4);
     stroke(51);
     fill(emptyColorString);
-    for (var i = 0; i < 20; i++) {
+    for (var i = 0; i < verticalCells; i++) {
         cells[i] = [];
         posCells[i] = [];
-        for (var j = 0; j < 10; j++) {
-            console.log(i, j);
-            cells[i][j] = color(emptyColorString);
+        for (var j = 0; j < horizontalCells; j++) {
+            cells[i][j] = emptyColorString;
             posCells[i][j] = [j * cellPx, i * cellPx];
-            rect(j * cellPx, i * cellPx, cellPx, cellPx);
         }
     }
-    initNewShape();
+    console.log(applySticker());
 }
 function draw() {
     drawGrid();
 }
 function drawGrid() {
-    strokeWeight(1);
-    for (var i = 0; i <= horizontalCells; i++) {
-        line(i * cellPx, 0, i * cellPx, height);
+    push();
+    for (var i = 0; i < verticalCells; i++) {
+        for (var j = 0; j < horizontalCells; j++) {
+            fill(cells[i][j]);
+            rect(j * cellPx, i * cellPx, cellPx, cellPx);
+        }
     }
+    pop();
 }
 function rotate(matrix) {
     return matrix[0].map(function (_, colIndex) {
@@ -122,13 +127,18 @@ function rotate(matrix) {
 function applySticker() {
     var size = stickerState.size;
     var matrix = stickerState.matrix;
-    var _a = stickerState.coords, x = _a[0], y = _a[1];
-    var stickerColor = stickerState.color;
-    for (var i = 0; i < stickerState.size; i++) {
-        for (var j = 0; j < size; j++) {
-            if (!!matrix[i][j]) {
-                if (cells[x + i][y + j] === emptyColor && (0 <= x + i <= horizontalCells - 1) && ) {
-                    cells[x + i][y + j] = stickerColor;
+    var _a = stickerState.coords, y = _a[0], x = _a[1];
+    var stickerColor = stickerState.colorString;
+    for (var ySticker = 0; ySticker < size; ySticker++) {
+        for (var xSticker = 0; xSticker < size; xSticker++) {
+            if (!!matrix[ySticker][xSticker]) {
+                if (cells[y + ySticker][x + xSticker] ===
+                    emptyColorString &&
+                    0 <= x + xSticker &&
+                    x + xSticker <= horizontalCells - 1 &&
+                    0 <= y + ySticker &&
+                    y + ySticker <= verticalCells - 1) {
+                    cells[y + ySticker][x + xSticker] = stickerColor;
                 }
                 else {
                     return false;
@@ -138,7 +148,7 @@ function applySticker() {
     }
     return true;
 }
-function initNewShape() {
+function initNewShape(colors) {
     var initCoords = [0, 0];
     var _a = generatePolygon(), shape = _a[0], size = _a[1];
     var leftMost = 0;
@@ -152,8 +162,8 @@ function initNewShape() {
         break;
     }
     var delta = floor(random() * (horizontalCells - size + leftMost));
-    initCoords = [0 + delta, 0];
-    stickerState = new StickerState(shape, size, initCoords, possibleColors[floor(random(0, possibleColors.length))]);
+    initCoords = [0, 0 + delta];
+    stickerState = new StickerState(shape, size, initCoords, colors[floor(random(0, colors.length))]);
 }
 function keyPressed() {
     if (keyCode === UP_ARROW) {

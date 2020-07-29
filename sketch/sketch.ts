@@ -5,7 +5,16 @@ const verticalCells = 20;
 
 type Coords = [number, number];
 
-type ColorMatrix = p5.Color[][];
+type ColorString =
+  | "red"
+  | "blue"
+  | "green"
+  | "yellow"
+  | "purple"
+  | "orange"
+  | "white"
+  | "pink";
+type ColorMatrix = ColorString[][];
 
 let cells: ColorMatrix = [];
 let posCells: Coords[][] = [];
@@ -16,42 +25,42 @@ class StickerState {
     public matrix: Booly[][],
     public size: number,
     public coords: Coords,
-    public color: p5.Color
+    public colorString: ColorString
   ) {}
 }
 
 let stickerState: StickerState;
 
-const emptyColorString = "pink";
-const emptyColor = color(emptyColorString);
-
-const possibleColors = [
-  "blue",
-  "red",
-  "green",
-  "yellow",
-].map((str) => color(str));
+const emptyColorString = "white";
+let emptyColor: p5.Color;
 
 function setup() {
   createCanvas(
     cellPx * horizontalCells,
     cellPx * verticalCells
   );
-  noStroke();
+  emptyColor = color(emptyColorString);
+  const possibleColors: ColorString[] = [
+    "blue",
+    "red",
+    "green",
+    "yellow",
+    "purple",
+    "orange",
+  ];
+  initNewShape(possibleColors);
   strokeWeight(4);
   stroke(51);
   fill(emptyColorString);
-  for (var i: number = 0; i < 20; i++) {
+  for (let i = 0; i < verticalCells; i++) {
     cells[i] = [];
     posCells[i] = [];
-    for (var j: number = 0; j < 10; j++) {
-      console.log(i, j);
-      cells[i][j] = color(emptyColorString);
+    for (let j = 0; j < horizontalCells; j++) {
+      cells[i][j] = emptyColorString;
       posCells[i][j] = [j * cellPx, i * cellPx];
-      rect(j * cellPx, i * cellPx, cellPx, cellPx);
     }
   }
-  initNewShape();
+  console.log(applySticker());
 }
 
 function draw() {
@@ -59,10 +68,14 @@ function draw() {
 }
 
 function drawGrid() {
-  strokeWeight(1);
-  for (let i = 0; i <= horizontalCells; i++) {
-    line(i * cellPx, 0, i * cellPx, height);
+  push();
+  for (let i = 0; i < verticalCells; i++) {
+    for (let j = 0; j < horizontalCells; j++) {
+      fill(cells[i][j]);
+      rect(j * cellPx, i * cellPx, cellPx, cellPx);
+    }
   }
+  pop();
 }
 
 function rotate(matrix: any[][]) {
@@ -74,13 +87,20 @@ function rotate(matrix: any[][]) {
 function applySticker(): Boolean {
   let size = stickerState.size;
   let matrix = stickerState.matrix;
-  let [x, y] = stickerState.coords;
-  let stickerColor = stickerState.color;
-  for (let i = 0; i < stickerState.size; i++) {
-    for (let j = 0; j < size; j++) {
-      if (!!matrix[i][j]) {
-        if (cells[x + i][y + j] === emptyColor && (0 <= x + i <= horizontalCells - 1) &&) {
-          cells[x + i][y + j] = stickerColor;
+  let [y, x] = stickerState.coords;
+  let stickerColor = stickerState.colorString;
+  for (let ySticker = 0; ySticker < size; ySticker++) {
+    for (let xSticker = 0; xSticker < size; xSticker++) {
+      if (!!matrix[ySticker][xSticker]) {
+        if (
+          cells[y + ySticker][x + xSticker] ===
+            emptyColorString &&
+          0 <= x + xSticker &&
+          x + xSticker <= horizontalCells - 1 &&
+          0 <= y + ySticker &&
+          y + ySticker <= verticalCells - 1
+        ) {
+          cells[y + ySticker][x + xSticker] = stickerColor;
         } else {
           return false;
         }
@@ -90,7 +110,7 @@ function applySticker(): Boolean {
   return true;
 }
 
-function initNewShape(){
+function initNewShape(colors: ColorString[]) {
   let initCoords: Coords = [0, 0];
   let [shape, size] = generatePolygon();
 
@@ -113,13 +133,13 @@ function initNewShape(){
   let delta = floor(
     random() * (horizontalCells - size + leftMost)
   );
-  initCoords = [0 + delta, 0]; // x, y
+  initCoords = [0, 0 + delta]; // y, x
 
   stickerState = new StickerState(
     shape,
     size,
     initCoords,
-    possibleColors[floor(random(0, possibleColors.length))]
+    colors[floor(random(0, colors.length))]
   );
 }
 
