@@ -30,6 +30,7 @@ let steadyStateCells: ColorMatrix = [];
 let lastFrame: ColorMatrix = [];
 let posCells: Coords[][] = [];
 let pos: Coords = [0, 0];
+let canMove: Boolean = true;
 
 class StickerState {
   constructor(
@@ -51,7 +52,6 @@ function setup() {
     cellPx * verticalCells
   );
   emptyColor = color(emptyColorString);
-  
 
   console.log(steadyStateCells);
   strokeWeight(4);
@@ -95,6 +95,8 @@ function rotateMatrix(matrix: Booly[][]): Booly[][] {
 }
 
 function applySticker(): Boolean {
+  canMove = true;
+  lastFrame = JSON.parse(JSON.stringify(cells));
   cells = JSON.parse(JSON.stringify(steadyStateCells));
   let size = stickerState.size;
   let matrix = stickerState.matrix;
@@ -108,19 +110,34 @@ function applySticker(): Boolean {
         JSON.stringify(matrix)
       );
       if (!!matrix[ySticker][xSticker]) {
-        if (
-          cells[y + ySticker][x + xSticker] ===
-            emptyColorString &&
-          0 <= x + xSticker &&
-          x + xSticker <= horizontalCells - 1 &&
-          0 <= y + ySticker &&
-          y + ySticker <= verticalCells - 1
-        ) {
-          lastFrame = JSON.parse(JSON.stringify(cells));
-          cells[y + ySticker][x + xSticker] = stickerColor;
-        } else {
+        try {
+          if (
+            cells[y + ySticker][x + xSticker] ===
+              emptyColorString &&
+            0 <= x + xSticker &&
+            x + xSticker <= horizontalCells - 1 &&
+            0 <= y + ySticker &&
+            y + ySticker <= verticalCells - 1
+          ) {
+            cells[y + ySticker][
+              x + xSticker
+            ] = stickerColor;
+          } else {
+            console.log("Du und ich sind falsch");
+            cells = JSON.parse(JSON.stringify(lastFrame));
+            canMove = !(
+              x + xSticker < 0 ||
+              x + xSticker >= horizontalCells
+            );
+            return false;
+          }
+        } catch {
           console.log("Du und ich sind falsch");
           cells = JSON.parse(JSON.stringify(lastFrame));
+          canMove = !(
+            x + xSticker < 0 ||
+            x + xSticker >= horizontalCells
+          );
           return false;
         }
       }
@@ -129,17 +146,20 @@ function applySticker(): Boolean {
   return true;
 }
 
+function moveSticker(xy: Coords) {
+  stickerState.coords = xy;
+  cells[xy[0]][xy[1]] = stickerState.colorString;
+}
+
 function initNewShape(colors: ColorString[]) {
   steadyStateCells = JSON.parse(JSON.stringify(cells));
   let initCoords: Coords = [0, 0];
   let [shape, size] = generatePolygon();
 
-  console.log("before: ", shape);
   let rotations = floor(random(0, 4));
   for (let i = 0; i < rotations; i++) {
     shape = rotateMatrix(shape);
   }
-  console.log("after: ", shape);
 
   let leftMost = 0;
   leftMost = getLeftMost(shape, size);
@@ -159,6 +179,10 @@ function initNewShape(colors: ColorString[]) {
 }
 
 function keyPressed() {
+  let lastCoords: Coords = [
+    stickerState.coords[0],
+    stickerState.coords[1],
+  ];
   if (keyCode === UP_ARROW) {
     stickerState.matrix = rotateMatrix(stickerState.matrix);
   } else if (keyCode === DOWN_ARROW) {
@@ -178,6 +202,24 @@ function keyPressed() {
     ];
   }
   applySticker();
+  if (!canMove) stickerState.coords = lastCoords;
+}
+
+function removeLineIfPossible() {
+  let done = false;
+  while (!done) {
+    let fullLineIdx = steadyStateCells.findIndex(
+      (line: ColorString[]) =>
+        line.every((cell) => cell != emptyColorString)
+    );
+    if (fullLineIdx == -1) done = true;
+    else {
+      steadyStateCells.splice(fullLineIdx, 1);
+      steadyStateCells = ([
+        Array(horizontalCells).fill(emptyColorString),
+      ] as ColorMatrix).concat(steadyStateCells);
+    }
+  }
 }
 
 function timeIt() {
@@ -186,13 +228,12 @@ function timeIt() {
     stickerState.coords[0] + 1,
     stickerState.coords[1],
   ];
-  if(!applySticker()){
-    stickerState.coords = [
-      stickerState.coords[0] - 1,
-      stickerState.coords[1],
-    ];
+  if (!applySticker()) {
+    console.log("Falsch");
+    cells = JSON.parse(JSON.stringify(lastFrame));
     initNewShape(possibleColors);
   }
+  removeLineIfPossible();
   console.log("tick");
 }
 

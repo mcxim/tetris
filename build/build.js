@@ -1,8 +1,8 @@
-var shapes = ["J", "L", "O", "T", "S", "Z", "I"];
+const shapes = ["J", "L", "O", "T", "S", "Z", "I"];
 function generatePolygon() {
-    var p;
-    var shape = shapes[floor(random() * 7)];
-    var size;
+    let p;
+    let shape = shapes[floor(random() * 7)];
+    let size;
     switch (shape) {
         case "I":
             size = 4;
@@ -63,11 +63,11 @@ function generatePolygon() {
     }
     return [p, size];
 }
-var cellPx = 20;
-var horizontalCells = 10;
-var verticalCells = 20;
-var timeStep = 1000;
-var possibleColors = [
+const cellPx = 20;
+const horizontalCells = 10;
+const verticalCells = 20;
+const timeStep = 1000;
+const possibleColors = [
     "blue",
     "red",
     "green",
@@ -75,23 +75,23 @@ var possibleColors = [
     "purple",
     "orange",
 ];
-var cells = [];
-var steadyStateCells = [];
-var lastFrame = [];
-var posCells = [];
-var pos = [0, 0];
-var StickerState = (function () {
-    function StickerState(matrix, size, coords, colorString) {
+let cells = [];
+let steadyStateCells = [];
+let lastFrame = [];
+let posCells = [];
+let pos = [0, 0];
+let canMove = true;
+class StickerState {
+    constructor(matrix, size, coords, colorString) {
         this.matrix = matrix;
         this.size = size;
         this.coords = coords;
         this.colorString = colorString;
     }
-    return StickerState;
-}());
-var stickerState;
-var emptyColorString = "white";
-var emptyColor;
+}
+let stickerState;
+const emptyColorString = "white";
+let emptyColor;
 function setup() {
     createCanvas(cellPx * horizontalCells, cellPx * verticalCells);
     emptyColor = color(emptyColorString);
@@ -99,10 +99,10 @@ function setup() {
     strokeWeight(4);
     stroke(51);
     fill(emptyColorString);
-    for (var i = 0; i < verticalCells; i++) {
+    for (let i = 0; i < verticalCells; i++) {
         cells[i] = [];
         posCells[i] = [];
-        for (var j = 0; j < horizontalCells; j++) {
+        for (let j = 0; j < horizontalCells; j++) {
             cells[i][j] = emptyColorString;
             posCells[i][j] = [j * cellPx, i * cellPx];
         }
@@ -118,8 +118,8 @@ function draw() {
 }
 function drawGrid() {
     push();
-    for (var i = 0; i < verticalCells; i++) {
-        for (var j = 0; j < horizontalCells; j++) {
+    for (let i = 0; i < verticalCells; i++) {
+        for (let j = 0; j < horizontalCells; j++) {
             fill(cells[i][j]);
             rect(j * cellPx, i * cellPx, cellPx, cellPx);
         }
@@ -127,32 +127,42 @@ function drawGrid() {
     pop();
 }
 function rotateMatrix(matrix) {
-    return matrix[0].map(function (_, colIndex) {
-        return matrix.map(function (row) { return row[colIndex]; }).reverse();
-    });
+    return matrix[0].map((_, colIndex) => matrix.map((row) => row[colIndex]).reverse());
 }
 function applySticker() {
+    canMove = true;
+    lastFrame = JSON.parse(JSON.stringify(cells));
     cells = JSON.parse(JSON.stringify(steadyStateCells));
-    var size = stickerState.size;
-    var matrix = stickerState.matrix;
-    var _a = stickerState.coords, y = _a[0], x = _a[1];
-    var stickerColor = stickerState.colorString;
-    for (var ySticker = 0; ySticker < size; ySticker++) {
-        for (var xSticker = 0; xSticker < size; xSticker++) {
+    let size = stickerState.size;
+    let matrix = stickerState.matrix;
+    let [y, x] = stickerState.coords;
+    let stickerColor = stickerState.colorString;
+    for (let ySticker = 0; ySticker < size; ySticker++) {
+        for (let xSticker = 0; xSticker < size; xSticker++) {
             console.log(ySticker, xSticker, JSON.stringify(matrix));
             if (!!matrix[ySticker][xSticker]) {
-                if (cells[y + ySticker][x + xSticker] ===
-                    emptyColorString &&
-                    0 <= x + xSticker &&
-                    x + xSticker <= horizontalCells - 1 &&
-                    0 <= y + ySticker &&
-                    y + ySticker <= verticalCells - 1) {
-                    lastFrame = JSON.parse(JSON.stringify(cells));
-                    cells[y + ySticker][x + xSticker] = stickerColor;
+                try {
+                    if (cells[y + ySticker][x + xSticker] ===
+                        emptyColorString &&
+                        0 <= x + xSticker &&
+                        x + xSticker <= horizontalCells - 1 &&
+                        0 <= y + ySticker &&
+                        y + ySticker <= verticalCells - 1) {
+                        cells[y + ySticker][x + xSticker] = stickerColor;
+                    }
+                    else {
+                        console.log("Du und ich sind falsch");
+                        cells = JSON.parse(JSON.stringify(lastFrame));
+                        canMove = !(x + xSticker < 0 ||
+                            x + xSticker >= horizontalCells);
+                        return false;
+                    }
                 }
-                else {
+                catch (_a) {
                     console.log("Du und ich sind falsch");
                     cells = JSON.parse(JSON.stringify(lastFrame));
+                    canMove = !(x + xSticker < 0 ||
+                        x + xSticker >= horizontalCells);
                     return false;
                 }
             }
@@ -160,23 +170,29 @@ function applySticker() {
     }
     return true;
 }
+function moveSticker(xy) {
+    stickerState.coords = xy;
+    cells[xy[0]][xy[1]] = stickerState.colorString;
+}
 function initNewShape(colors) {
     steadyStateCells = JSON.parse(JSON.stringify(cells));
-    var initCoords = [0, 0];
-    var _a = generatePolygon(), shape = _a[0], size = _a[1];
-    console.log("before: ", shape);
-    var rotations = floor(random(0, 4));
-    for (var i = 0; i < rotations; i++) {
+    let initCoords = [0, 0];
+    let [shape, size] = generatePolygon();
+    let rotations = floor(random(0, 4));
+    for (let i = 0; i < rotations; i++) {
         shape = rotateMatrix(shape);
     }
-    console.log("after: ", shape);
-    var leftMost = 0;
+    let leftMost = 0;
     leftMost = getLeftMost(shape, size);
-    var delta = floor(random(0, horizontalCells - leftMost - 1 + 1));
+    let delta = floor(random(0, horizontalCells - leftMost - 1 + 1));
     initCoords = [0, 0 + delta];
     stickerState = new StickerState(shape, size, initCoords, colors[floor(random(0, colors.length))]);
 }
 function keyPressed() {
+    let lastCoords = [
+        stickerState.coords[0],
+        stickerState.coords[1],
+    ];
     if (keyCode === UP_ARROW) {
         stickerState.matrix = rotateMatrix(stickerState.matrix);
     }
@@ -199,6 +215,22 @@ function keyPressed() {
         ];
     }
     applySticker();
+    if (!canMove)
+        stickerState.coords = lastCoords;
+}
+function removeLineIfPossible() {
+    let done = false;
+    while (!done) {
+        let fullLineIdx = steadyStateCells.findIndex((line) => line.every((cell) => cell != emptyColorString));
+        if (fullLineIdx == -1)
+            done = true;
+        else {
+            steadyStateCells.splice(fullLineIdx, 1);
+            steadyStateCells = [
+                Array(horizontalCells).fill(emptyColorString),
+            ].concat(steadyStateCells);
+        }
+    }
 }
 function timeIt() {
     stickerState.coords = [
@@ -206,18 +238,17 @@ function timeIt() {
         stickerState.coords[1],
     ];
     if (!applySticker()) {
-        stickerState.coords = [
-            stickerState.coords[0] - 1,
-            stickerState.coords[1],
-        ];
+        console.log("Falsch");
+        cells = JSON.parse(JSON.stringify(lastFrame));
         initNewShape(possibleColors);
     }
+    removeLineIfPossible();
     console.log("tick");
 }
 function getLeftMost(shape, size) {
-    var leftMost = 0;
-    for (var i = size - 1; i >= 0; i--) {
-        for (var j = 0; j < size; j++) {
+    let leftMost = 0;
+    for (let i = size - 1; i >= 0; i--) {
+        for (let j = 0; j < size; j++) {
             if (shape[j][i] == 1) {
                 leftMost = i;
                 return leftMost;
