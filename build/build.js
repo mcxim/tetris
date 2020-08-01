@@ -71,7 +71,6 @@ const possibleColors = [
     "blue",
     "red",
     "green",
-    "yellow",
     "purple",
     "orange",
 ];

@@ -10,7 +10,6 @@ type ColorString =
   | "red"
   | "blue"
   | "green"
-  | "yellow"
   | "purple"
   | "orange"
   | "white"
@@ -20,7 +19,6 @@ const possibleColors: ColorString[] = [
   "blue",
   "red",
   "green",
-  "yellow",
   "purple",
   "orange",
 ];
